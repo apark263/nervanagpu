@@ -689,7 +689,7 @@ def call_compound_kernel(rand_state, *args):
     kernel_args = [ rand_state, ]
     type_args   = []
     shape_stack = []
-
+    stream      = None
     # Apply reduction constraints and determine thread axis
     # Blocks will be allocated counter to this axis
     reduction = False
@@ -719,6 +719,8 @@ def call_compound_kernel(rand_state, *args):
         # Array operand
         if isinstance(arg, ng.GPUTensor):
 
+            if stream is None:
+                stream = arg.backend.stream
             # If same array is passed in multiple times to expression,
             # consolidate them into one kernel argument.
             if arg in array_ids:
@@ -836,7 +838,7 @@ def call_compound_kernel(rand_state, *args):
 
     # call the kernel with the number of blocks set as the size of the off-axis
     # Maxwell does well with 32 thread sized blocks, no need to autotune.
-    kernel.prepared_call((max_shape[1-axis],1,1), (32,1,1), *kernel_args)
+    kernel.prepared_async_call((max_shape[1-axis],1,1), (32,1,1), *kernel_args, stream)
 
     return out
 
