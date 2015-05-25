@@ -590,18 +590,18 @@ class NervanaGPU(object):
         # Warmup
         if repeat > 1:
             for r in range(max(repeat // 10, 1)):
-                kernel.prepared_async_call(*params, shared_size=shared, self.stream)
+                kernel.prepared_async_call(*params, shared_size=shared, stream=self.stream)
 
         if self.bench or repeat > 1:
             start, end = _get_events()
-            start.record()
+            start.record(stream=self.stream)
 
         for r in range(repeat):
             if zero: C.fill(0.0)
-            kernel.prepared_async_call(*params, shared_size=shared, self.stream)
+            kernel.prepared_async_call(*params, shared_size=shared, stream=self.stream)
 
         if self.bench or repeat > 1:
-            end.record()
+            end.record(stream=self.stream)
             end.synchronize()
             msecs  = end.time_since(start) / repeat
             gflops = layer.flops / (msecs * 1000000.0)
@@ -676,18 +676,18 @@ class NervanaGPU(object):
         # Warmup
         if repeat > 1:
             for r in range(max(repeat // 10, 1)):
-                kernel.prepared_async_call(*params, shared_size=layer.lut_size, self.stream)
+                kernel.prepared_async_call(*params, shared_size=layer.lut_size, stream=self.stream)
 
         if self.bench or repeat > 1:
             start, end = _get_events()
-            start.record()
+            start.record(self.stream)
 
         for r in range(repeat):
             if mode: B.fill(0)
-            kernel.prepared_async_call(*params, shared_size=layer.lut_size, self.stream)
+            kernel.prepared_async_call(*params, shared_size=layer.lut_size, stream=self.stream)
 
         if self.bench or repeat > 1:
-            end.record()
+            end.record(self.stream)
             end.synchronize()
             msecs  = end.time_since(start) / repeat
             print "%7.3f msecs (%s) grid:%s" % (msecs, layer, layer.grid)
@@ -788,17 +788,17 @@ class NervanaGPU(object):
         # Warmup
         if repeat > 1:
             for r in range(max(repeat // 10, 1)):
-                kernel.prepared_async_call(*params, self.stream)
+                kernel.prepared_async_call(*params, stream=self.stream)
 
         if self.bench or repeat > 1:
             start, end = _get_events()
-            start.record()
+            start.record(self.stream)
 
         for r in range(repeat):
-            kernel.prepared_async_call(*params, self.stream)
+            kernel.prepared_async_call(*params, stream=self.stream)
 
         if self.bench or repeat > 1:
-            end.record()
+            end.record(self.stream)
             end.synchronize()
             msecs = end.time_since(start) / repeat
             gflops = (m * n * k * 2.0) / (msecs * 1000000.0)
