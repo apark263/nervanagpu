@@ -832,10 +832,9 @@ def call_compound_kernel(rand_state, *args):
 
     # get or create the kernel in the memoize cache
     kernel = _get_compound_kernel(tuple(type_args))
-    stream = out.backend.stream
     # call the kernel with the number of blocks set as the size of the off-axis
     # Maxwell does well with 32 thread sized blocks, no need to autotune.
-    kernel.prepared_async_call((max_shape[1-axis],1,1), (32,1,1), *kernel_args, stream)
+    kernel.prepared_async_call((max_shape[1-axis],1,1), (32,1,1), out.backend.stream, *kernel_args)
 
     return out
 

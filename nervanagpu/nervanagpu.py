@@ -582,7 +582,7 @@ class NervanaGPU(object):
         if relu:       flags |= 2
 
         kernel = _get_conv_kernel(self.cubin_path, clss, op, size)
-        params = [grid, block, _get_rand_state(),
+        params = [grid, block, self.stream, _get_rand_state(),
                   C.gpudata, A.gpudata, B.gpudata,
                   alpha, flags ]
         params.extend(args)
@@ -590,7 +590,7 @@ class NervanaGPU(object):
         # Warmup
         if repeat > 1:
             for r in range(max(repeat // 10, 1)):
-                kernel.prepared_async_call(*params, shared_size=shared, stream=self.stream)
+                kernel.prepared_async_call(*params, shared_size=shared)
 
         if self.bench or repeat > 1:
             start, end = _get_events()
@@ -598,7 +598,7 @@ class NervanaGPU(object):
 
         for r in range(repeat):
             if zero: C.fill(0.0)
-            kernel.prepared_async_call(*params, shared_size=shared, stream=self.stream)
+            kernel.prepared_async_call(*params, shared_size=shared)
 
         if self.bench or repeat > 1:
             end.record(stream=self.stream)
@@ -670,13 +670,13 @@ class NervanaGPU(object):
         b_data = 0 if B is None else B.gpudata
 
         kernel = _get_pool_kernel(self.cubin_path, clss, layer.op)
-        params = [layer.grid, layer.block, I.gpudata, O.gpudata, b_data, mode]
+        params = [layer.grid, layer.block, self.stream, I.gpudata, O.gpudata, b_data, mode]
         params.extend(layer.kernel_args)
 
         # Warmup
         if repeat > 1:
             for r in range(max(repeat // 10, 1)):
-                kernel.prepared_async_call(*params, shared_size=layer.lut_size, stream=self.stream)
+                kernel.prepared_async_call(*params, shared_size=layer.lut_size)
 
         if self.bench or repeat > 1:
             start, end = _get_events()
@@ -684,7 +684,7 @@ class NervanaGPU(object):
 
         for r in range(repeat):
             if mode: B.fill(0)
-            kernel.prepared_async_call(*params, shared_size=layer.lut_size, stream=self.stream)
+            kernel.prepared_async_call(*params, shared_size=layer.lut_size)
 
         if self.bench or repeat > 1:
             end.record(self.stream)
@@ -780,7 +780,7 @@ class NervanaGPU(object):
 
         kernel = _get_gemm_kernel(self.cubin_path, clss, op, size)
         params = [
-            (gridA,gridB,1), (threads,1,1), _get_rand_state(),
+            (gridA,gridB,1), (threads,1,1), self.stream, _get_rand_state(),
             A.gpudata, B.gpudata, C.gpudata,
             lda, ldb, ldc, m, n, k,
             alpha, beta, flags ]
@@ -788,14 +788,14 @@ class NervanaGPU(object):
         # Warmup
         if repeat > 1:
             for r in range(max(repeat // 10, 1)):
-                kernel.prepared_async_call(*params, stream=self.stream)
+                kernel.prepared_async_call(*params)
 
         if self.bench or repeat > 1:
             start, end = _get_events()
             start.record(self.stream)
 
         for r in range(repeat):
-            kernel.prepared_async_call(*params, stream=self.stream)
+            kernel.prepared_async_call(*params)
 
         if self.bench or repeat > 1:
             end.record(self.stream)
