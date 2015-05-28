@@ -165,7 +165,7 @@ class GPUTensor(object):
 
         return self
 
-    def get(self, stream=None):
+    def get(self):
         """
         copy device array to host.
         Returns:
@@ -173,7 +173,7 @@ class GPUTensor(object):
         """
         assert self.is_contiguous, "Array in get() must be contiguous"
         ary = np.empty(self.shape, self.dtype)
-        drv.memcpy_dtoh_async(ary, self.gpudata, stream)
+        drv.memcpy_dtoh_async(ary, self.gpudata, self.backend.stream)
         return ary
 
     def asnumpyarray(self):
